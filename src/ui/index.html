@@ -19,6 +19,15 @@
             <input type="text" placeholder="Search for products, brands and more...">
             <button>Search</button>
         </div>
+		
+		<!-- Add this inside the <header> next to search-bar -->
+        <div class="role-selector" style="margin-right: 20px;">
+            <select id="role-sim" onchange="simulateRoleLogin(this.value)" style="padding: 8px; border-radius: 4px; border: 1px solid white; background: transparent; color: white; font-weight: 600; cursor: pointer;">
+                <option value="client" style="color: black;">Role: Client</option>
+                <option value="admin" style="color: black;">Role: Admin</option>
+                <option value="backend" style="color: black;">Role: Backend</option>
+            </select>
+        </div>
 
         <nav>
             <button class="nav-link active" id="tab-home" onclick="switchTab('home')">Home</button>

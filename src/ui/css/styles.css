@@ -273,3 +273,25 @@ button {
     animation: slideIn 0.3s ease-out;
 }
 @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* Custom Dropdown for Admin */
+.admin-status-select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--text-main);
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+}
+.admin-status-select:focus {
+    border-color: var(--primary);
+}
+
+/* Delivered Status Badge */
+.status.delivered { 
+    background: #f6ffed; 
+    color: #52c41a; 
+    border: 1px solid #b7eb8f; 
+}

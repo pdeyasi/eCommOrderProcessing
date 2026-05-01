@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniShop Pro</title>
+    <!-- Link to your external CSS file -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Navigation Header -->
+    <header>
+        <div class="logo" onclick="switchTab('home')">
+            <span class="logo-icon">🛍️</span> MiniShop
+        </div>
+        
+        <div class="search-bar">
+            <input type="text" placeholder="Search for products, brands and more...">
+            <button>Search</button>
+        </div>
+
+        <nav>
+            <button class="nav-link active" id="tab-home" onclick="switchTab('home')">Home</button>
+            <button class="nav-link" id="tab-orders" onclick="switchTab('orders')">My Orders</button>
+            <button class="nav-link cart-nav" id="tab-cart" onclick="switchTab('cart')">
+                🛒 Cart <span class="badge" id="cart-count">0</span>
+            </button>
+        </nav>
+    </header>
+
+    <main class="container">
+        
+        <!-- ================= HOME VIEW ================= -->
+        <div id="view-home" class="view-section active">
+            <!-- Hero Banner -->
+            <div class="hero-banner">
+                <div class="hero-content">
+                    <h2>Premium Tech. Unbeatable Prices.</h2>
+                    <p>Upgrade your setup with our latest arrivals. Up to 40% off on select items.</p>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <h3 class="section-title">Trending Now</h3>
+            <div id="product-grid" class="product-grid">
+                <!-- Products injected by script.js -->
+            </div>
+        </div>
+
+        <!-- ================= CART VIEW ================= -->
+        <div id="view-cart" class="view-section">
+            <div class="split-layout">
+                <div class="card-panel cart-items-panel">
+                    <h2>Review Your Cart</h2>
+                    <div id="cart-items-container">
+                        <!-- Cart items injected here -->
+                    </div>
+                    <div class="cart-total-row">
+                        <h3>Total Amount:</h3>
+                        <h3 class="total-price">$<span id="cart-total">0.00</span></h3>
+                    </div>
+                </div>
+
+                <div class="card-panel checkout-panel">
+                    <h2>Shipping Details</h2>
+                    <form id="shipping-form" onsubmit="placeOrder(event)">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="name" required placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label>Shipping Address</label>
+                            <textarea id="address" rows="4" required placeholder="123 Main St, Apt 4B"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary btn-large">Confirm & Place Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MY ORDERS VIEW ================= -->
+        <div id="view-orders" class="view-section">
+            <div class="card-panel">
+                <h2>Your Order History</h2>
+                <div id="orders-container">
+                    <!-- Orders injected here -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Link to your external JavaScript file -->
+    <script src="scripts/script.js"></script>
+</body>
+</html>

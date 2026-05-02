@@ -427,3 +427,218 @@ button {
     background-color: var(--text-muted);
     cursor: not-allowed;
 }
+
+/* ================= ENHANCED ORDERS UI ================= */
+.order-item {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    background: var(--surface);
+    transition: box-shadow 0.2s;
+}
+
+.order-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.order-item-content {
+    display: flex;
+    gap: 20px;
+    flex-grow: 1;
+    align-items: center;
+}
+
+.order-product-icon {
+    font-size: 40px;
+    background: var(--bg-color);
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.order-details-wrapper {
+    flex-grow: 1;
+}
+
+.order-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.order-product-name {
+    margin: 0;
+    color: var(--text-main);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.order-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.order-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    font-size: 14px;
+    color: var(--text-muted);
+    background: #f8f9fa;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border: 1px solid #edf0f2;
+}
+
+.meta-column p {
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.meta-column strong {
+    color: var(--text-main);
+}
+
+.order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 140px;
+    border-left: 1px solid var(--border);
+    padding-left: 20px;
+    margin-left: 20px;
+    justify-content: center;
+}
+
+/* Ensure mobile responsiveness handles the new grid cleanly */
+@media (max-width: 768px) {
+    .order-item {
+        flex-direction: column;
+    }
+    
+    .order-item-content {
+        align-items: flex-start;
+    }
+    
+    .order-header-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .order-actions {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        padding-left: 0;
+        margin-left: 0;
+        padding-top: 15px;
+        margin-top: 15px;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .order-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ================= MODAL STYLES ================= */
+.modal-overlay {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--surface, #ffffff);
+    padding: 24px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 450px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border, #eee);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 { margin: 0; font-size: 20px; }
+.close-modal { font-size: 28px; cursor: pointer; color: #888; line-height: 1; }
+.close-modal:hover { color: #333; }
+
+/* ================= TRACKING METADATA ================= */
+.track-meta-box {
+    background: #f8f9fa;
+    border: 1px solid #edf0f2;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    font-size: 14px;
+    color: #444;
+}
+
+.track-meta-box p { margin: 6px 0; }
+.track-meta-box strong { color: #222; }
+
+/* ================= TIMELINE STYLES ================= */
+.tracking-timeline {
+    border-left: 2px solid #e0e0e0;
+    margin-left: 15px;
+    padding-left: 25px;
+    position: relative;
+}
+
+.timeline-step {
+    margin-bottom: 25px;
+    position: relative;
+}
+
+.timeline-step:last-child { margin-bottom: 0; }
+
+/* The timeline dots */
+.timeline-step::before {
+    content: '';
+    position: absolute;
+    left: -32px; /* aligns with the border */
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #e0e0e0;
+}
+
+/* Status Colors */
+.timeline-step.completed::before { border-color: #28a745; background: #28a745; }
+.timeline-step.cancelled::before { border-color: #dc3545; background: #dc3545; }
+.timeline-step.pending::before { border-color: #ccc; }
+
+.step-title { font-weight: 600; font-size: 15px; color: #333; margin-bottom: 4px; }
+.step-date { font-size: 13px; color: #777; }

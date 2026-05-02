@@ -13,12 +13,25 @@ let currentUser = null;
 let products = [];
 let cart = [];
 let orders = [];
+let displayOrders = [];
 let currentPage = 1;
 let pageSize = 10;
 let totalPages = 1;
 let paginationFilters = {
     userId: null,      // For client role
     statusId: null     // For admin role
+};
+const STATUS_MAP = {
+    1: { text: 'In Cart', class: 'processing' },
+    2: { text: 'New Order - COD', class: 'processing' },
+    3: { text: 'New Order - Paid', class: 'processing' },
+    4: { text: 'Packaged In Warehouse', class: 'processing' },
+    5: { text: 'Delivered', class: 'delivered' },
+    6: { text: 'Cancellation Requested', class: 'cancelled' },
+    7: { text: 'Cancellation to be paid', class: 'cancelled' },
+    8: { text: 'Cancelled', class: 'cancelled' },
+    9: { text: 'In Transit', class: 'shipped' },
+    10: { text: 'Placed', class: 'processing' }
 };
 
 switchTab('auth');
@@ -227,7 +240,7 @@ async function renderOrders(pageNumber = 1) {
     }
 
     // --- CRITICAL FIX: Hide Status 1 (Cart Items) from the Order View ---
-    let displayOrders = orders;
+    displayOrders = orders;
     if (currentRole === 'client') {
         displayOrders = orders.filter(order => order.statusId > 1);
     }
@@ -241,35 +254,77 @@ async function renderOrders(pageNumber = 1) {
     container.innerHTML = displayOrders.map(order => {
         let actionControls = '';
         
+        // Client buttons
         if (currentRole === 'client') {
             actionControls = `
-                <button class="btn-info" onclick="trackOrder('${order.id}')">Track</button>
-                ${order.statusId === 2 ? `<button class="btn-danger" onclick="cancelOrder('${order.id}')">Cancel</button>` : ''}
+                <button class="btn-info" onclick="trackOrder('${order.orderId}')">Track Order</button>
+                ${(order.statusId === 2 || order.statusId === 3 || order.statusId === 10) ? `<button class="btn-danger" onclick="cancelOrder('${order.id}')">Cancel Order</button>` : ''}
             `;
-        } else if (currentRole === 'admin' || currentRole === 'backend') {
-            // Notice how options now start at 2
+        } 
+        // Admin/Backend dropdowns
+        else if (currentRole === 'admin' || currentRole === 'backend') {
             actionControls = `
                 <select class="admin-status-select" onchange="updateOrderStatus('${order.id}', this.value)">
-                    <option value="2" ${order.statusId === 2 ? 'selected' : ''}>Processing</option>
-                    <option value="3" ${order.statusId === 3 ? 'selected' : ''}>Shipped</option>
-                    <option value="4" ${order.statusId === 4 ? 'selected' : ''}>Delivered</option>
-                    <option value="5" ${order.statusId === 5 ? 'selected' : ''}>Cancelled</option>
+                    <option value="2" ${order.statusId === 2 ? 'selected' : ''}>New - COD</option>
+                    <option value="3" ${order.statusId === 3 ? 'selected' : ''}>New - Paid</option>
+                    <option value="4" ${order.statusId === 4 ? 'selected' : ''}>Packaged</option>
+                    <option value="9" ${order.statusId === 9 ? 'selected' : ''}>In Transit</option>
+                    <option value="5" ${order.statusId === 5 ? 'selected' : ''}>Delivered</option>
+                    <option value="6" ${order.statusId === 6 ? 'selected' : ''}>Cancel Requested</option>
+                    <option value="8" ${order.statusId === 8 ? 'selected' : ''}>Cancelled</option>
                 </select>
             `;
         }
 
+        // 1. Cross-reference the product details using the Product ID
+        const product = products.find(p => p.id === order.productId) || { name: 'Unknown Product', price: 0, icon: '📦' };
+        
+        // 2. Map human-readable statuses and payment modes
+        const statusInfo = STATUS_MAP[order.statusId] || { text: 'Processing', class: 'processing' };
+        const paymentText = order.paymentMode === 1 ? 'Online Payment' : 'Cash on Delivery';
+        
+        // 3. Format dates dynamically based on the current status
+        let dateLabel = 'Placed';
+        let dateValue = order.orderedOn || order.addedOn;
+        if (order.statusId === 5 && order.deliveredOn) { 
+            dateLabel = 'Delivered'; 
+            dateValue = order.deliveredOn; 
+        } else if (order.statusId >= 6 && order.statusId <= 8 && order.cancelledOn) { 
+            dateLabel = 'Cancelled'; 
+            dateValue = order.cancelledOn; 
+        }
+        
+        const formattedDate = dateValue ? new Date(dateValue).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Pending';
+
+        // 4. Return the new HTML block WITHOUT the Order ID
         return `
             <div class="order-item" id="order-box-${order.id}">
-                <div>
-                    <h3 style="margin: 0 0 8px 0; color: var(--primary);">
-                        Order #${order.id} 
-                        <span class="status" id="status-${order.id}">Status ID: ${order.statusId}</span>
-                    </h3>
-                    <p style="margin: 0; color: var(--text-muted); font-size: 14px;">
-                        Placed: ${order.orderedOn || order.addedOn || 'N/A'} | Product ID: ${order.productId}
-                    </p>
+                <div class="order-item-content">
+                    <div class="order-product-icon">${product.icon}</div>
+                    <div class="order-details-wrapper">
+                        
+                        <div class="order-header-row">
+                            <h3 class="order-product-name">
+                                ${product.name}
+                                <span class="status ${statusInfo.class}">${statusInfo.text}</span>
+                            </h3>
+                            <span class="order-price">$${product.price.toFixed(2)}</span>
+                        </div>
+                        
+                        <div class="order-meta-grid">
+                            <div class="meta-column">
+                                <p><strong>Date ${dateLabel}:</strong> ${formattedDate}</p>
+                                <p><strong>Payment:</strong> ${paymentText}</p>
+                            </div>
+                            <div class="meta-column">
+                                <p><strong>Deliver To:</strong> ${order.orderedFor || 'N/A'}</p>
+                                <p><strong>Address:</strong> ${order.deliveryAddress ? order.deliveryAddress.replace(/ \(Payment: .*\)/, '') : 'N/A'}</p>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 8px; min-width: 120px;">
+                <div class="order-actions">
                     ${actionControls}
                 </div>
             </div>
@@ -417,7 +472,7 @@ async function placeOrder(event) {
         const orderPayload = {
 			userId: paginationFilters.userId,
             productId: item.id,
-            statusId: (paymentMethod === "COD") ? 2 : 3,
+            statusId: 10,
             lastUpdatedByUserId: paginationFilters.userId,
 			paymentMode: (paymentMethod === "COD") ? 0 : 1,
             lastUpdatedOn: orderDate,
@@ -518,7 +573,7 @@ async function loadClientCart(userId) {
                     name: productInfo.name || `Product #${record.productId}`,
                     price: productInfo.price || 0,
                     icon: productInfo.icon || '📦',
-                    dbOrderId: record.id // Keep this so we can delete it from DB if removed
+                    dbOrderId: record.orderId // Keep this so we can delete it from DB if removed
                 };
             });
             
@@ -529,3 +584,107 @@ async function loadClientCart(userId) {
         console.error("Failed to load cart from DB:", error);
     }
 }
+
+function formatDateTime(dateString) {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleString(undefined, { 
+        year: 'numeric', month: 'short', day: 'numeric', 
+        hour: '2-digit', minute:'2-digit' 
+    });
+}
+
+function buildTimelineStep(title, dateStr, statusClass) {
+    const formattedDate = dateStr ? formatDateTime(dateStr) : '<span style="color:#aaa; font-style:italic;">Pending</span>';
+    return `
+        <div class="timeline-step ${statusClass}">
+            <div class="step-title">${title}</div>
+            <div class="step-date">${formattedDate}</div>
+        </div>
+    `;
+}
+
+function closeTrackModal() {
+    document.getElementById('trackOrderModal').classList.remove('active');
+}
+
+// Main Track Order Function triggered by the button
+function trackOrder(orderId) {
+    // 1. Find the specific order in your existing local array
+    const order = displayOrders.find(o => o.orderId == orderId); 
+    if (!order) {
+        alert("Order details not found.");
+        return;
+    }
+
+    const modal = document.getElementById('trackOrderModal');
+    const body = document.getElementById('trackOrderBody');
+
+    // 2. Format top-level metadata
+    const lastUpdated = formatDateTime(order.lastUpdatedOn) || 'N/A';
+    const paymentModeText = order.paymentMode === 1 ? 'Online Payment' : 'Cash on Delivery';
+    const deliveryAddress = order.deliveryAddress ? order.deliveryAddress.replace(/ \(Payment: .*\)/, '') : 'N/A';
+
+    // 3. Start building the modal content (Meta Box)
+    let contentHtml = `
+        <div class="track-meta-box">
+            <p><strong>Last Updated:</strong> ${lastUpdated}</p>
+            <p><strong>Deliver To:</strong> ${order.orderedFor || 'N/A'}</p>
+            <p><strong>Address:</strong> ${deliveryAddress}</p>
+            <p><strong>Payment Mode:</strong> ${paymentModeText}</p>
+        </div>
+    `;
+
+    // 4. Check if the order is pending system approval (Status 10)
+    if (order.statusId === 10) {
+        // Render an approval banner instead of the timeline
+        contentHtml += `
+            <div style="padding: 20px; text-align: center; background: #fff8e1; color: #b78103; border: 1px solid #ffe082; border-radius: 8px; font-weight: 600; margin-top: 15px;">
+                <span style="font-size: 18px; display: block; margin-bottom: 5px;">⏳</span>
+                Order pending for system approval.
+            </div>
+        `;
+    } else {
+        // 5. Build the sequential timeline for all other statuses
+        let timelineHtml = '<div class="tracking-timeline">';
+
+        // Step A: Order Placed
+        timelineHtml += buildTimelineStep('Order Placed', order.orderedOn, 'completed');
+
+        // Step B: Packaged
+        const hasPackagedDate = !!order.packagedOn;
+        timelineHtml += buildTimelineStep('Packaged', order.packagedOn, hasPackagedDate ? 'completed' : 'pending');
+
+        // Step C & D: Branching logic based on Delivery vs Cancellation
+        if (order.statusId >= 6 && order.statusId <= 8) {
+            
+            // Cancellation branch
+            timelineHtml += buildTimelineStep('Cancellation Requested / Cancelled', order.cancelledOn, 'cancelled');
+            
+            // Only show CancellationPaidOn if it exists
+            if (order.cancellationPaidOn) {
+                timelineHtml += buildTimelineStep('Refund Processed', order.cancellationPaidOn, 'completed');
+            }
+
+        } else {
+            // Delivery branch
+            const isDelivered = !!order.deliveredOn;
+            timelineHtml += buildTimelineStep('Delivered', order.deliveredOn, isDelivered ? 'completed' : 'pending');
+        }
+
+        timelineHtml += '</div>';
+        
+        // Append the timeline to the content
+        contentHtml += timelineHtml;
+    }
+
+    // 6. Inject HTML into the modal body and display it
+    body.innerHTML = contentHtml;
+    modal.classList.add('active');
+}
+
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('trackOrderModal');
+    if (event.target === modal) {
+        closeTrackModal();
+    }
+});

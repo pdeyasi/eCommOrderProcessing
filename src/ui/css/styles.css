@@ -325,3 +325,86 @@ button {
 .auth-panel a:hover {
     text-decoration: underline;
 }
+
+/* ================= MOBILE RESPONSIVE FIXES ================= */
+@media (max-width: 768px) {
+    /* 1. Header & Navigation */
+    header {
+        flex-direction: column;
+        padding: 15px;
+        gap: 15px;
+    }
+    
+    .search-bar {
+        max-width: 100%;
+        margin: 0;
+        width: 100%;
+    }
+    
+    nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        gap: 8px;
+    }
+    
+    .nav-link {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+    /* Override the inline margin on the logout button for mobile */
+    nav .btn-danger {
+        margin-left: 0 !important; 
+    }
+
+    /* 2. Hero Banner */
+    .hero-banner {
+        padding: 30px 20px;
+    }
+    
+    .hero-content h2 {
+        font-size: 24px;
+    }
+    
+    .hero-content p {
+        font-size: 15px;
+    }
+
+    /* 3. Product Grid & Cart Split Layout */
+    .split-layout {
+        grid-template-columns: 1fr; /* Stacks cart items and shipping details */
+    }
+    
+    .product-grid {
+        /* Allows 2 smaller items per row on mobile, instead of 1 stretched one */
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+    }
+
+    /* 4. Order Items */
+    .order-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    /* Make order action buttons take full width on mobile */
+    .order-item > div:last-child {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .order-item button, 
+    .admin-status-select {
+        flex: 1;
+        text-align: center;
+    }
+
+    /* 5. Adjust Auth Panels */
+    .auth-container {
+        min-height: auto;
+        padding-top: 40px;
+    }
+}

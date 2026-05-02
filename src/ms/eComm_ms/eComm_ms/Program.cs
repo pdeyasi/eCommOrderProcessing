@@ -18,6 +18,9 @@ builder.Services.AddDbContext<ECommDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddScoped<OrderDetailsService>();
 
+// Register the background service
+builder.Services.AddHostedService<OrderStatusUpdateService>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();

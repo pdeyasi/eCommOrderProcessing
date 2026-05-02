@@ -11,6 +11,8 @@ namespace eComm_ms.DBA
 
         public DbSet<Products> Products { get; set; }
 
+        public DbSet<Users> Users { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -22,6 +24,15 @@ namespace eComm_ms.DBA
                 entity.Property(e => e.Name).IsRequired();
                 entity.Property(e => e.Price).IsRequired().HasPrecision(18, 2);
                 entity.Property(e => e.Icon).IsRequired();
+            });
+
+            // Configure Users entity
+            modelBuilder.Entity<Users>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.RoleId).IsRequired();
+                entity.Property(e => e.Password).IsRequired();
             });
         }
     }

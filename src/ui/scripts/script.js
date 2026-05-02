@@ -1,16 +1,109 @@
 const API_BASE_URL = "https://localhost:7019";
-const PRODUCTS_API_URL = `${API_BASE_URL}/products`;
 
-let currentRole = 'client'; 
+// Map API Role IDs to your UI Role Strings
+const ROLE_MAP = {
+    0: 'admin',
+    1: 'backend',
+    2: 'client'
+};
+
+let currentRole = null;
+let currentUser = null;
 let products = [];
 let cart = [];
-let orders = [
-    { id: "ORD-9821", date: "2023-10-25", total: 799.00, status: "shipped", items: ["Apple Watch Ultra 2"] }
-];
+let orders = [];
 
-// Initialize
+switchTab('auth');
 initHome();
-fetchUserSession();
+
+async function handleAuth(event, action) {
+    event.preventDefault();
+    
+    const isLogin = action === 'login';
+    const username = document.getElementById(`${action}-username`).value;
+    const password = document.getElementById(`${action}-password`).value;
+    const endpoint = isLogin ? '/users/authenticate' : '/users/add';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (isLogin) {
+                // Successful Login
+                showToast(data.message || "Authentication successful");
+                currentUser = data.username;
+                currentRole = ROLE_MAP[data.roleId];
+                
+                // Show navigation header
+                document.getElementById('main-header').style.display = 'flex';
+                
+                // Configure UI & Redirect based on role
+                applyRoleUI();
+                if (currentRole === 'client') {
+                    initHome(); // Load products
+                    switchTab('home');
+                } else {
+                    switchTab('orders'); // Admins/Backend go straight to orders
+                }
+            } else {
+                // Successful Registration
+                showToast("Registration successful! Please login.");
+                toggleAuthMode('login'); // Switch back to login panel
+            }
+        } else {
+            showToast(isLogin ? "Invalid credentials." : "Error creating account.");
+        }
+    } catch (error) {
+        console.error("Auth error:", error);
+        showToast("Network error: Cannot reach authentication server.");
+    }
+}
+
+function toggleAuthMode(mode) {
+    if (mode === 'login') {
+        document.getElementById('login-panel').style.display = 'block';
+        document.getElementById('register-panel').style.display = 'none';
+    } else {
+        document.getElementById('login-panel').style.display = 'none';
+        document.getElementById('register-panel').style.display = 'block';
+    }
+}
+
+function logout() {
+    currentRole = null;
+    currentUser = null;
+    document.getElementById('main-header').style.display = 'none';
+    
+    // Clear forms
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    
+    switchTab('auth');
+    showToast("Logged out successfully.");
+}
+
+function applyRoleUI() {
+    const tabHome = document.getElementById('tab-home');
+    const tabCart = document.getElementById('tab-cart');
+    
+    if (currentRole === 'admin' || currentRole === 'backend') {
+        tabHome.style.display = 'none';
+        tabCart.style.display = 'none';
+    } else {
+        tabHome.style.display = 'block';
+        tabCart.style.display = 'flex';
+    }
+    
+    if (document.getElementById('view-orders').classList.contains('active')) {
+        renderOrders();
+    }
+}
 
 async function initHome() {
     const grid = document.getElementById('product-grid');
@@ -18,7 +111,7 @@ async function initHome() {
 
     try {
         // Triggering the API call to get the JSON result[cite: 1]
-        const response = await fetch(PRODUCTS_API_URL);
+        const response = await fetch(`${API_BASE_URL}/products`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -50,21 +143,6 @@ function renderProductGrid() {
             <button class="btn-primary" onclick="addToCart(${p.id})">Add to Cart</button>
         </div>
     `).join('');
-}
-
-async function fetchUserSession() {
-    // Fetches the role from your localhost API on load
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/me`);
-        if (response.ok) {
-            const data = await response.json();
-            currentRole = data.role; // e.g., 'client', 'admin', 'backend'
-            document.getElementById('role-sim').value = currentRole;
-        }
-    } catch (e) {
-        console.warn("API Offline: Using mock role context.");
-    }
-    applyRoleUI();
 }
 
 function simulateRoleLogin(role) {

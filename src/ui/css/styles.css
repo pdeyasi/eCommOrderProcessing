@@ -295,3 +295,33 @@ button {
     color: #52c41a; 
     border: 1px solid #b7eb8f; 
 }
+
+/* ================= AUTHENTICATION STYLES ================= */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+}
+
+.auth-panel {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.auth-panel h2 {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 25px;
+}
+
+.auth-panel a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-panel a:hover {
+    text-decoration: underline;
+}

@@ -32,7 +32,7 @@ namespace eComm_ms.Controllers
         /// An <see cref="ActionResult{IEnumerable}"/> containing the list of products.
         /// Returns 200 OK with the product list.
         /// </returns>
-        [HttpGet(Name = "getall")]
+        [HttpGet(Name = "getallproducts")]
         public ActionResult<IEnumerable<Products>> Get()
         {
             var products = _context.Products.ToList();
@@ -46,7 +46,7 @@ namespace eComm_ms.Controllers
         /// <returns>
         /// 200 OK with the <see cref="Products"/> when found; otherwise 404 Not Found.
         /// </returns>
-        [HttpGet("{id:int}", Name = "getbyid")]
+        [HttpGet("{id:int}", Name = "getproductbyid")]
         public ActionResult<Products> Get(int id)
         {
             var product = _context.Products.FirstOrDefault(p => p.Id == id);

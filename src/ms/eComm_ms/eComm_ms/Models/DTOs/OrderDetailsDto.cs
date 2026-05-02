@@ -28,15 +28,15 @@ namespace eComm_ms.Models.DTOs
         public string CancellationPaidOn { get; set; } = string.Empty;
 
         // Product Details
-        public ProductDetailsDto Product { get; set; }
+        public ProductDetailsDto? Product { get; set; }
 
         // Status Details
-        public StatusDetailsDto Status { get; set; }
+        public StatusDetailsDto? Status { get; set; }
 
         // User Details
-        public UserDetailsDto User { get; set; }
+        public UserDetailsDto? User { get; set; }
 
         // Updated By User Details
-        public UserDetailsDto UpdatedByUser { get; set; }
+        public UserDetailsDto? UpdatedByUser { get; set; }
     }
 }

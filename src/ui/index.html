@@ -131,14 +131,40 @@
         </div>
 
         <!-- ================= MY ORDERS VIEW ================= -->
-        <div id="view-orders" class="view-section">
-            <div class="card-panel">
-                <h2>Your Order History</h2>
-                <div id="orders-container">
-                    <!-- Orders injected here -->
-                </div>
-            </div>
-        </div>
+		<div id="view-orders" class="view-section">
+			<div class="card-panel">
+				<h2>Your Order History</h2>
+		
+				<!-- Admin & Backend Filters (Hidden by default for clients) -->
+				<div id="admin-filters" style="display: none; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; padding: 15px; background: var(--bg-color); border-radius: 8px;">
+					<div style="flex: 1; min-width: 150px;">
+						<label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:5px;">User ID</label>
+						<input type="number" id="filter-user-id" placeholder="Enter User ID" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+					</div>
+					<div style="flex: 1; min-width: 150px;">
+						<label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:5px;">Order Status</label>
+						<select id="filter-status-id" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px;">
+							<option value="2">New Order - COD</option>
+							<option value="3">New Order - Paid</option>
+							<option value="4">Packaged In Warehouse</option>
+							<option value="9">In Transit</option>
+							<option value="6">Cancellation Requested</option>
+							<option value="7">Cancellation to be paid</option>
+							<option value="8">Cancelled</option>
+							<option value="5">Delivered</option>
+						</select>
+					</div>
+					<div style="display: flex; align-items: flex-end; gap: 10px;">
+						<button class="btn-primary" onclick="applyAdminFilters()">Filter</button>
+						<button class="btn-outline" onclick="clearAdminFilters()">Clear</button>
+					</div>
+				</div>
+		
+				<div id="orders-container">
+					<!-- Orders injected here -->
+				</div>
+			</div>
+		</div>
 
     </main>
 

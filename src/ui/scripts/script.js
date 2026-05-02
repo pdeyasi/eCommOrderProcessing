@@ -26,7 +26,7 @@ initHome();
 
 async function handleAuth(event, action) {
     event.preventDefault();
-    
+         
     const isLogin = action === 'login';
     const username = document.getElementById(`${action}-username`).value;
     const password = document.getElementById(`${action}-password`).value;
@@ -41,29 +41,40 @@ async function handleAuth(event, action) {
 
         if (response.ok) {
             const data = await response.json();
-            
+                         
             if (isLogin) {
                 showToast(data.message || "Authentication successful");
                 currentUser = data.username;
                 currentRole = ROLE_MAP[data.roleId];
-                paginationFilters.userId = data.userId; // Store user ID for pagination
+                const loggedInUserId = data.id || data.userId;
                 
                 document.getElementById('main-header').style.display = 'flex';
                 applyRoleUI();
                 
+                // ROUTING LOGIC
                 if (currentRole === 'client') {
-                    initHome();
-                    switchTab('home');
-                } else {
+                    paginationFilters.userId = loggedInUserId;
+                    paginationFilters.statusId = null;
+                    
+                    await initHome(); // Must load products first
+                    await loadClientCart(loggedInUserId); // Fills the cart with Status 1
+                    
                     currentPage = 1;
-                    renderOrders(1);
-                    switchTab('orders');
+                    await renderOrders(1);
+                    switchTab('home'); 
+                } 
+                else if (currentRole === 'admin' || currentRole === 'backend') {
+                    paginationFilters.userId = null;
+                    paginationFilters.statusId = 2; // Default to Processing (2) instead of Cart (1)
+                    
+                    currentPage = 1;
+                    await renderOrders(1);
+                    switchTab('orders'); 
                 }
             } else {
-                // Successful Registration
                 showToast("Registration successful! Please login.");
-                toggleAuthMode('login'); // Switch back to login panel
-			}
+                toggleAuthMode('login'); 
+            }
         } else {
             showToast(isLogin ? "Invalid credentials." : "Error creating account.");
         }
@@ -86,31 +97,26 @@ function toggleAuthMode(mode) {
 function logout() {
     currentRole = null;
     currentUser = null;
-    document.getElementById('main-header').style.display = 'none';
     
-    // Clear forms
+    // 1. Reset data in memory
+    paginationFilters = { userId: null, statusId: null };
+    orders = [];
+    cart = [];
+
+    document.getElementById('main-header').style.display = 'none';
+
+    // 2. Clear login forms
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';
-    
+
+    // 3. Clear UI containers (prevents next user from seeing old HTML)
+    document.getElementById('orders-container').innerHTML = '';
+    document.getElementById('cart-items-container').innerHTML = '';
+    document.getElementById('cart-count').innerText = '0';
+    document.getElementById('cart-total').innerText = '0.00';
+
     switchTab('auth');
     showToast("Logged out successfully.");
-}
-
-function applyRoleUI() {
-    const tabHome = document.getElementById('tab-home');
-    const tabCart = document.getElementById('tab-cart');
-    
-    if (currentRole === 'admin' || currentRole === 'backend') {
-        tabHome.style.display = 'none';
-        tabCart.style.display = 'none';
-    } else {
-        tabHome.style.display = 'block';
-        tabCart.style.display = 'flex';
-    }
-    
-    if (document.getElementById('view-orders').classList.contains('active')) {
-        renderOrders();
-    }
 }
 
 async function initHome() {
@@ -161,23 +167,6 @@ function simulateRoleLogin(role) {
     else switchTab('home');
 }
 
-function applyRoleUI() {
-    const tabHome = document.getElementById('tab-home');
-    const tabCart = document.getElementById('tab-cart');
-    
-    if (currentRole === 'admin' || currentRole === 'backend') {
-        tabHome.style.display = 'none';
-        tabCart.style.display = 'none';
-    } else {
-        tabHome.style.display = 'block';
-        tabCart.style.display = 'flex';
-    }
-
-    if (document.getElementById('view-orders').classList.contains('active')) {
-        renderOrders();
-    }
-}
-
 function switchTab(tabId) {
     document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
     const activeTabButton = document.getElementById(`tab-${tabId}`);
@@ -202,65 +191,69 @@ function showToast(message) {
 async function renderOrders(pageNumber = 1) {
     const container = document.getElementById('orders-container');
     container.innerHTML = "<p>Fetching orders...</p>";
-
+    
     try {
-        let apiUrl = `${API_BASE_URL}/orders`;
-        
-        // Build URL based on role and filters
+        let apiUrl = '';
+
         if (currentRole === 'client') {
-            // Clients see only their own orders
-            const userId = await getCurrentUserId(); // You need to store this after login
-            apiUrl = `${API_BASE_URL}/orders/user/${userId}?pageNumber=${pageNumber}&pageSize=${pageSize}`;
-        } else if (currentRole === 'admin') {
-            // Admins can filter by status (or show all statuses)
-            // You might want to add a status filter dropdown in the UI
-            if (paginationFilters.statusId) {
-                apiUrl = `${API_BASE_URL}/orders/status/${paginationFilters.statusId}?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+            apiUrl = `${API_BASE_URL}/orders/user/${paginationFilters.userId}?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+        } else if (currentRole === 'admin' || currentRole === 'backend') {
+            const statusIdToFetch = paginationFilters.statusId || 2; // Default to 2 (Processing)
+            
+            if (paginationFilters.userId) {
+                apiUrl = `${API_BASE_URL}/orders/user/${paginationFilters.userId}?pageNumber=${pageNumber}&pageSize=${pageSize}`;
             } else {
-                // Default: show pending orders
-                apiUrl = `${API_BASE_URL}/orders/status/1?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+                apiUrl = `${API_BASE_URL}/orders/status/${statusIdToFetch}?pageNumber=${pageNumber}&pageSize=${pageSize}`;
             }
+
+            const statusDropdown = document.getElementById('filter-status-id');
+            if (statusDropdown) statusDropdown.value = statusIdToFetch;
         }
 
-        const response = await fetch(apiUrl, {
-            headers: { 'Authorization': `Bearer ROLE_${currentRole}` }
-        });
-
+        const response = await fetch(apiUrl, { headers: { 'Authorization': `Bearer ROLE_${currentRole}` } });
         if (!response.ok) throw new Error("API Offline");
-        
-        const result = await response.json();
-        orders = result.data;
-        currentPage = result.pageNumber;
-        totalPages = result.totalPages;
-        pageSize = result.pageSize;
 
+        const result = await response.json();
+        orders = result.data || result; 
+        
+        if (result.pageNumber) {
+            currentPage = result.pageNumber;
+            totalPages = result.totalPages;
+            pageSize = result.pageSize;
+        }
     } catch (error) {
-        console.warn("API Offline: Using mock order data.");
+        console.warn("Order fetch failed:", error);
         orders = [];
     }
 
-    if (orders.length === 0) {
+    // --- CRITICAL FIX: Hide Status 1 (Cart Items) from the Order View ---
+    let displayOrders = orders;
+    if (currentRole === 'client') {
+        displayOrders = orders.filter(order => order.statusId > 1);
+    }
+
+    if (!displayOrders || displayOrders.length === 0) {
         container.innerHTML = "<p>No orders found.</p>";
         renderPaginationControls();
         return;
     }
 
-    // Render orders
-    container.innerHTML = orders.map(order => {
+    container.innerHTML = displayOrders.map(order => {
         let actionControls = '';
-
+        
         if (currentRole === 'client') {
             actionControls = `
                 <button class="btn-info" onclick="trackOrder('${order.id}')">Track</button>
-                ${order.statusId === 1 ? `<button class="btn-danger" onclick="cancelOrder('${order.id}')">Cancel</button>` : ''}
+                ${order.statusId === 2 ? `<button class="btn-danger" onclick="cancelOrder('${order.id}')">Cancel</button>` : ''}
             `;
-        } else if (currentRole === 'admin') {
+        } else if (currentRole === 'admin' || currentRole === 'backend') {
+            // Notice how options now start at 2
             actionControls = `
                 <select class="admin-status-select" onchange="updateOrderStatus('${order.id}', this.value)">
-                    <option value="1" ${order.statusId === 1 ? 'selected' : ''}>Processing</option>
-                    <option value="2" ${order.statusId === 2 ? 'selected' : ''}>Shipped</option>
-                    <option value="3" ${order.statusId === 3 ? 'selected' : ''}>Delivered</option>
-                    <option value="4" ${order.statusId === 4 ? 'selected' : ''}>Cancelled</option>
+                    <option value="2" ${order.statusId === 2 ? 'selected' : ''}>Processing</option>
+                    <option value="3" ${order.statusId === 3 ? 'selected' : ''}>Shipped</option>
+                    <option value="4" ${order.statusId === 4 ? 'selected' : ''}>Delivered</option>
+                    <option value="5" ${order.statusId === 5 ? 'selected' : ''}>Cancelled</option>
                 </select>
             `;
         }
@@ -269,11 +262,11 @@ async function renderOrders(pageNumber = 1) {
             <div class="order-item" id="order-box-${order.id}">
                 <div>
                     <h3 style="margin: 0 0 8px 0; color: var(--primary);">
-                        ${order.id} 
+                        Order #${order.id} 
                         <span class="status" id="status-${order.id}">Status ID: ${order.statusId}</span>
                     </h3>
                     <p style="margin: 0; color: var(--text-muted); font-size: 14px;">
-                        Placed: ${order.orderedOn}   Total: Product ID: ${order.productId}
+                        Placed: ${order.orderedOn || order.addedOn || 'N/A'} | Product ID: ${order.productId}
                     </p>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 8px; min-width: 120px;">
@@ -283,7 +276,6 @@ async function renderOrders(pageNumber = 1) {
         `;
     }).join('');
 
-    // Render pagination controls
     renderPaginationControls();
 }
 
@@ -339,7 +331,7 @@ async function addToCart(productId) {
         if (response.ok) {
             const savedOrder = await response.json();
             // Store the DB Order ID in the local cart object for later removal
-            cart.push({ ...product, dbOrderId: savedOrder.id });
+            cart.push({ ...product, dbOrderId: savedOrder.order.id });
             document.getElementById('cart-count').innerText = cart.length;
             showToast(`Added ${product.name} to cart and saved to DB`);
         }
@@ -423,21 +415,19 @@ async function placeOrder(event) {
     // Iterate through each item in the cart to trigger the API individually
     for (const item of cart) {
         const orderPayload = {
-            userId: paginationFilters.userId, // From your current session
+			userId: paginationFilters.userId,
             productId: item.id,
-            statusId: 1, // 1 = Processing/Pending
+            statusId: (paymentMethod === "COD") ? 2 : 3,
             lastUpdatedByUserId: paginationFilters.userId,
-			PaymentMode: (paymentMethod === "COD") ? 0 : 1,
+			paymentMode: (paymentMethod === "COD") ? 0 : 1,
             lastUpdatedOn: orderDate,
-            addedOn: orderDate,
-            orderedOn: orderDate,
             orderedFor: name,
             deliveryAddress: `${address} (Payment: ${paymentMethod})`
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/orders/createorder`, {
-                method: 'POST',
+            const response = await fetch(`${API_BASE_URL}/orders/${item.dbOrderId}/status`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderPayload)
             });
@@ -462,4 +452,80 @@ async function placeOrder(event) {
 
     submitBtn.disabled = false;
     submitBtn.innerText = "Confirm & Place Order";
+}
+
+function applyRoleUI() {
+    const tabHome = document.getElementById('tab-home');
+    const tabCart = document.getElementById('tab-cart');
+    const adminFilters = document.getElementById('admin-filters'); // New filter UI
+
+    if (currentRole === 'admin' || currentRole === 'backend') {
+        tabHome.style.display = 'none';
+        tabCart.style.display = 'none';
+        if (adminFilters) adminFilters.style.display = 'flex'; // Show filters
+    } else {
+        tabHome.style.display = 'block';
+        tabCart.style.display = 'flex';
+        if (adminFilters) adminFilters.style.display = 'none'; // Hide filters for clients
+    }
+
+    if (document.getElementById('view-orders').classList.contains('active')) {
+        renderOrders();
+    }
+}
+
+function applyAdminFilters() {
+    const userId = document.getElementById('filter-user-id').value;
+    const statusId = document.getElementById('filter-status-id').value;
+
+    paginationFilters.userId = userId ? parseInt(userId) : null;
+    paginationFilters.statusId = statusId ? parseInt(statusId) : null;
+
+    currentPage = 1;
+    renderOrders(1);
+}
+
+function clearAdminFilters() {
+    document.getElementById('filter-user-id').value = '';
+    document.getElementById('filter-status-id').value = '';
+
+    paginationFilters.userId = null;
+    paginationFilters.statusId = null;
+
+    currentPage = 1;
+    renderOrders(1);
+}
+
+async function loadClientCart(userId) {
+    try {
+        // Fetch user's items
+        const response = await fetch(`${API_BASE_URL}/orders/user/${userId}?pageNumber=1&pageSize=100`, {
+            headers: { 'Authorization': `Bearer ROLE_${currentRole}` }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            const allUserItems = result.data || result;
+            
+            // 1. Filter out only Status 1 items for the Cart
+            const cartRecords = allUserItems.filter(order => order.statusId === 1);
+            
+            // 2. Map the DB records to visual product data
+            cart = cartRecords.map(record => {
+                const productInfo = products.find(p => p.id === record.productId) || {};
+                return {
+                    id: productInfo.id || record.productId,
+                    name: productInfo.name || `Product #${record.productId}`,
+                    price: productInfo.price || 0,
+                    icon: productInfo.icon || '📦',
+                    dbOrderId: record.id // Keep this so we can delete it from DB if removed
+                };
+            });
+            
+            // Update UI badge
+            document.getElementById('cart-count').innerText = cart.length;
+        }
+    } catch (error) {
+        console.error("Failed to load cart from DB:", error);
+    }
 }

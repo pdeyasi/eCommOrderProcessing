@@ -227,7 +227,7 @@ namespace eComm_ms.Controllers
         /// 404 Not Found if the order does not exist.
         /// </returns>
         [HttpPut("{id:long}/status", Name = "updateorderstatus")]
-        public ActionResult<object> UpdateOrderStatus(long id, [FromQuery] long statusId, [FromQuery] long updatedById)
+        public ActionResult<object> UpdateOrderStatus(long id, [FromBody] Orders order)
         {
             // Validate input
             if (id <= 0)
@@ -235,30 +235,38 @@ namespace eComm_ms.Controllers
                 return BadRequest(new { message = "Order ID must be greater than 0" });
             }
 
-            if (statusId <= 0)
+            if (order == null)
+            {
+                return BadRequest(new { message = "Order data is required" });
+            }
+
+            if (order.StatusId <= 0)
             {
                 return BadRequest(new { message = "Status ID must be greater than 0" });
             }
 
-            if (updatedById <= 0)
+            if (order.LastUpdatedByUserId <= 0)
             {
                 return BadRequest(new { message = "Updated By ID must be greater than 0" });
             }
 
             // Find the order
-            var order = _context.Orders.FirstOrDefault(o => o.Id == id);
+            var orderDetails = _context.Orders.FirstOrDefault(o => o.Id == id);
 
-            if (order == null)
+            if (orderDetails == null)
             {
                 return NotFound(new { message = $"Order not found with ID: {id}" });
             }
 
             // Update status and timestamp
-            order.StatusId = statusId;
-            order.LastUpdatedByUserId = updatedById;
-            order.LastUpdatedOn = DateTime.Now.ToString("O");
+            orderDetails.StatusId = order.StatusId;
+            orderDetails.LastUpdatedByUserId = order.LastUpdatedByUserId;
+            orderDetails.LastUpdatedOn = DateTime.Now.ToString("O");
+            orderDetails.PaymentMode = order.PaymentMode;
+            orderDetails.OrderedFor = order.OrderedFor;
+            orderDetails.DeliveryAddress = order.DeliveryAddress;
 
-            switch(statusId)
+            switch (order.StatusId)
             {
                 case 2:
                 case 3:

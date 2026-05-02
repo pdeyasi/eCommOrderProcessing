@@ -13,6 +13,7 @@ let currentUser = null;
 let products = [];
 let cart = [];
 let orders = [];
+let displayOrders = [];
 let currentPage = 1;
 let pageSize = 10;
 let totalPages = 1;
@@ -239,7 +240,7 @@ async function renderOrders(pageNumber = 1) {
     }
 
     // --- CRITICAL FIX: Hide Status 1 (Cart Items) from the Order View ---
-    let displayOrders = orders;
+    displayOrders = orders;
     if (currentRole === 'client') {
         displayOrders = orders.filter(order => order.statusId > 1);
     }
@@ -256,7 +257,7 @@ async function renderOrders(pageNumber = 1) {
         // Client buttons
         if (currentRole === 'client') {
             actionControls = `
-                <button class="btn-info" onclick="trackOrder('${order.id}')">Track Order</button>
+                <button class="btn-info" onclick="trackOrder('${order.orderId}')">Track Order</button>
                 ${(order.statusId === 2 || order.statusId === 3 || order.statusId === 10) ? `<button class="btn-danger" onclick="cancelOrder('${order.id}')">Cancel Order</button>` : ''}
             `;
         } 
@@ -583,3 +584,107 @@ async function loadClientCart(userId) {
         console.error("Failed to load cart from DB:", error);
     }
 }
+
+function formatDateTime(dateString) {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleString(undefined, { 
+        year: 'numeric', month: 'short', day: 'numeric', 
+        hour: '2-digit', minute:'2-digit' 
+    });
+}
+
+function buildTimelineStep(title, dateStr, statusClass) {
+    const formattedDate = dateStr ? formatDateTime(dateStr) : '<span style="color:#aaa; font-style:italic;">Pending</span>';
+    return `
+        <div class="timeline-step ${statusClass}">
+            <div class="step-title">${title}</div>
+            <div class="step-date">${formattedDate}</div>
+        </div>
+    `;
+}
+
+function closeTrackModal() {
+    document.getElementById('trackOrderModal').classList.remove('active');
+}
+
+// Main Track Order Function triggered by the button
+function trackOrder(orderId) {
+    // 1. Find the specific order in your existing local array
+    const order = displayOrders.find(o => o.orderId == orderId); 
+    if (!order) {
+        alert("Order details not found.");
+        return;
+    }
+
+    const modal = document.getElementById('trackOrderModal');
+    const body = document.getElementById('trackOrderBody');
+
+    // 2. Format top-level metadata
+    const lastUpdated = formatDateTime(order.lastUpdatedOn) || 'N/A';
+    const paymentModeText = order.paymentMode === 1 ? 'Online Payment' : 'Cash on Delivery';
+    const deliveryAddress = order.deliveryAddress ? order.deliveryAddress.replace(/ \(Payment: .*\)/, '') : 'N/A';
+
+    // 3. Start building the modal content (Meta Box)
+    let contentHtml = `
+        <div class="track-meta-box">
+            <p><strong>Last Updated:</strong> ${lastUpdated}</p>
+            <p><strong>Deliver To:</strong> ${order.orderedFor || 'N/A'}</p>
+            <p><strong>Address:</strong> ${deliveryAddress}</p>
+            <p><strong>Payment Mode:</strong> ${paymentModeText}</p>
+        </div>
+    `;
+
+    // 4. Check if the order is pending system approval (Status 10)
+    if (order.statusId === 10) {
+        // Render an approval banner instead of the timeline
+        contentHtml += `
+            <div style="padding: 20px; text-align: center; background: #fff8e1; color: #b78103; border: 1px solid #ffe082; border-radius: 8px; font-weight: 600; margin-top: 15px;">
+                <span style="font-size: 18px; display: block; margin-bottom: 5px;">⏳</span>
+                Order pending for system approval.
+            </div>
+        `;
+    } else {
+        // 5. Build the sequential timeline for all other statuses
+        let timelineHtml = '<div class="tracking-timeline">';
+
+        // Step A: Order Placed
+        timelineHtml += buildTimelineStep('Order Placed', order.orderedOn, 'completed');
+
+        // Step B: Packaged
+        const hasPackagedDate = !!order.packagedOn;
+        timelineHtml += buildTimelineStep('Packaged', order.packagedOn, hasPackagedDate ? 'completed' : 'pending');
+
+        // Step C & D: Branching logic based on Delivery vs Cancellation
+        if (order.statusId >= 6 && order.statusId <= 8) {
+            
+            // Cancellation branch
+            timelineHtml += buildTimelineStep('Cancellation Requested / Cancelled', order.cancelledOn, 'cancelled');
+            
+            // Only show CancellationPaidOn if it exists
+            if (order.cancellationPaidOn) {
+                timelineHtml += buildTimelineStep('Refund Processed', order.cancellationPaidOn, 'completed');
+            }
+
+        } else {
+            // Delivery branch
+            const isDelivered = !!order.deliveredOn;
+            timelineHtml += buildTimelineStep('Delivered', order.deliveredOn, isDelivered ? 'completed' : 'pending');
+        }
+
+        timelineHtml += '</div>';
+        
+        // Append the timeline to the content
+        contentHtml += timelineHtml;
+    }
+
+    // 6. Inject HTML into the modal body and display it
+    body.innerHTML = contentHtml;
+    modal.classList.add('active');
+}
+
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('trackOrderModal');
+    if (event.target === modal) {
+        closeTrackModal();
+    }
+});

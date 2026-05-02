@@ -9,13 +9,13 @@ namespace eComm_ms.Models
         public Int64 Id { get; set; }
 
         [NotNull]
-        public String UserId { get; set; }
+        public String UserId { get; set; } = string.Empty;
 
         [NotNull]
         public Int64 RoleId { get; set; }
 
         [NotNull]
         [JsonIgnore]
-        public String Password { get; set; }
+        public String Password { get; set; } = string.Empty;
     }
 }

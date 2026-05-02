@@ -17,7 +17,7 @@ namespace eComm_ms.Models
         /// Display name of the product.
         /// </summary>
         [NotNull]
-        public String Name { get; set; }
+        public String Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Price of the product in the store's currency.
@@ -29,7 +29,7 @@ namespace eComm_ms.Models
         /// Icon or image path that represents the product.
         /// </summary>
         [NotNull]
-        public String Icon { get; set; }
+        public String Icon { get; set; } = string.Empty;
 
     }
 }

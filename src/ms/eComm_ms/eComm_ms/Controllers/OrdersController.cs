@@ -262,6 +262,16 @@ namespace eComm_ms.Controllers
                 return NotFound(new { message = $"Order not found with ID: {id}" });
             }
 
+            if ((order.StatusId == 6 || order.StatusId == 6)
+                && (orderDetails.StatusId != 10
+                || orderDetails.StatusId != 2
+                || orderDetails.StatusId != 3
+                || orderDetails.StatusId != 4))
+            {
+                // Do not allow cancel for processed orders
+                return BadRequest(new { message = "Orders cannot be cancelled once in Transit or Delivered or Cancelled" });
+            }
+
             // Update status and timestamp
             orderDetails.StatusId = order.StatusId;
             orderDetails.LastUpdatedByUserId = order.LastUpdatedByUserId;
@@ -278,7 +288,7 @@ namespace eComm_ms.Controllers
                     break;
                 case 4:
                     order.PackagedOn = DateTime.Now.ToString("O");
-                    break; 
+                    break;
                 case 5:
                     order.DeliveredOn = DateTime.Now.ToString("O");
                     break;
@@ -292,8 +302,8 @@ namespace eComm_ms.Controllers
                 case 9:
                     order.CancelledOn = DateTime.Now.ToString("O");
                     break;
-            }    
-            
+            }
+
             try
             {
                 _context.SaveChanges();

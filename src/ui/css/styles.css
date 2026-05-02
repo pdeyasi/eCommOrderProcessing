@@ -427,3 +427,129 @@ button {
     background-color: var(--text-muted);
     cursor: not-allowed;
 }
+
+/* ================= ENHANCED ORDERS UI ================= */
+.order-item {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    background: var(--surface);
+    transition: box-shadow 0.2s;
+}
+
+.order-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.order-item-content {
+    display: flex;
+    gap: 20px;
+    flex-grow: 1;
+    align-items: center;
+}
+
+.order-product-icon {
+    font-size: 40px;
+    background: var(--bg-color);
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.order-details-wrapper {
+    flex-grow: 1;
+}
+
+.order-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.order-product-name {
+    margin: 0;
+    color: var(--text-main);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.order-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.order-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    font-size: 14px;
+    color: var(--text-muted);
+    background: #f8f9fa;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border: 1px solid #edf0f2;
+}
+
+.meta-column p {
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.meta-column strong {
+    color: var(--text-main);
+}
+
+.order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 140px;
+    border-left: 1px solid var(--border);
+    padding-left: 20px;
+    margin-left: 20px;
+    justify-content: center;
+}
+
+/* Ensure mobile responsiveness handles the new grid cleanly */
+@media (max-width: 768px) {
+    .order-item {
+        flex-direction: column;
+    }
+    
+    .order-item-content {
+        align-items: flex-start;
+    }
+    
+    .order-header-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .order-actions {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        padding-left: 0;
+        margin-left: 0;
+        padding-top: 15px;
+        margin-top: 15px;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .order-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}

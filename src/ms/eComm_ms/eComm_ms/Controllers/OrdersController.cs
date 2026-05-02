@@ -1,5 +1,7 @@
 ﻿using eComm_ms.DBA;
 using eComm_ms.Models;
+using eComm_ms.Models.DTOs;
+using eComm_ms.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace eComm_ms.Controllers
@@ -18,128 +20,23 @@ namespace eComm_ms.Controllers
         /// </summary>
         private readonly ECommDbContext _context;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OrdersController"/> class.
-        /// </summary>
-        /// <param name="context">The database context to be used by the controller.</param>
-        public OrdersController(ECommDbContext context)
+        private readonly OrderDetailsService _orderDetailsService;
+
+        public OrdersController(ECommDbContext context, OrderDetailsService orderDetailsService)
         {
             _context = context;
+            _orderDetailsService = orderDetailsService;
         }
 
         /// <summary>
-        /// Retrieves orders by a specific user ID with pagination.
-        /// </summary>
-        /// <param name="userId">The user ID to filter orders.</param>
-        /// <param name="pageNumber">The page number (1-based). Default is 1.</param>
-        /// <param name="pageSize">The number of orders per page. Default is 10, max 100.</param>
-        /// <returns>
-        /// 200 OK with paginated orders list for the specified user.
-        /// 404 Not Found if user has no orders.
-        /// </returns>
-        [HttpGet("user/{userId:long}", Name = "getordersbyuserid")]
-        public ActionResult<object> GetByUserId(long userId, int pageNumber = 1, int pageSize = 10)
-        {
-            // Validate input
-            if (userId <= 0)
-            {
-                return BadRequest(new { message = "User ID must be greater than 0" });
-            }
-
-            pageNumber = ValidatePageNumber(pageNumber);
-            pageSize = ValidatePageSize(pageSize);
-
-            // Calculate skip count
-            var skipCount = (pageNumber - 1) * pageSize;
-
-            // Get total count for this user
-            var totalCount = _context.Orders.Where(o => o.UserId == userId).Count();
-
-            if (totalCount == 0)
-            {
-                return NotFound(new { message = $"No orders found for user ID: {userId}" });
-            }
-
-            // Get paginated orders for this user
-            var orders = _context.Orders
-                .Where(o => o.UserId == userId)
-                .OrderByDescending(o => o.Id)
-                .Skip(skipCount)
-                .Take(pageSize)
-                .ToList();
-
-            return Ok(new
-            {
-                data = orders,
-                userId = userId,
-                pageNumber = pageNumber,
-                pageSize = pageSize,
-                totalCount = totalCount,
-                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-            });
-        }
-
-        /// <summary>
-        /// Retrieves orders by a specific status ID with pagination.
-        /// </summary>
-        /// <param name="statusId">The status ID to filter orders.</param>
-        /// <param name="pageNumber">The page number (1-based). Default is 1.</param>
-        /// <param name="pageSize">The number of orders per page. Default is 10, max 100.</param>
-        /// <returns>
-        /// 200 OK with paginated orders list for the specified status.
-        /// 404 Not Found if no orders exist for the status.
-        /// </returns>
-        [HttpGet("status/{statusId:long}", Name = "getordersbystatus")]
-        public ActionResult<object> GetByStatusId(long statusId, int pageNumber = 1, int pageSize = 10)
-        {
-            // Validate input
-            if (statusId <= 0)
-            {
-                return BadRequest(new { message = "Status ID must be greater than 0" });
-            }
-
-            pageNumber = ValidatePageNumber(pageNumber);
-            pageSize = ValidatePageSize(pageSize);
-
-            // Calculate skip count
-            var skipCount = (pageNumber - 1) * pageSize;
-
-            // Get total count for this status
-            var totalCount = _context.Orders.Where(o => o.StatusId == statusId).Count();
-
-            if (totalCount == 0)
-            {
-                return NotFound(new { message = $"No orders found for status ID: {statusId}" });
-            }
-
-            // Get paginated orders for this status
-            var orders = _context.Orders
-                .Where(o => o.StatusId == statusId)
-                .OrderByDescending(o => o.Id)
-                .Skip(skipCount)
-                .Take(pageSize)
-                .ToList();
-
-            return Ok(new
-            {
-                data = orders,
-                statusId = statusId,
-                pageNumber = pageNumber,
-                pageSize = pageSize,
-                totalCount = totalCount,
-                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-            });
-        }
-
-        /// <summary>
-        /// Retrieves a single order by its ID.
+        /// Retrieves a single order by its ID with complete product, status, and user details.
         /// </summary>
         /// <param name="id">The order ID to retrieve.</param>
         /// <returns>
-        /// 200 OK with the order when found; otherwise 404 Not Found.
+        /// 200 OK with the enriched OrderDetailsDto when found; otherwise 404 Not Found.
         /// </returns>
-        [HttpGet("{id:long}", Name = "getorderbyid")]
-        public ActionResult<Orders> GetById(long id)
+        [HttpGet("{id:long}", Name = "getorderdetailsbyid")]
+        public ActionResult<OrderDetailsDto> GetOrderDetailsById(long id)
         {
             if (id <= 0)
             {
@@ -153,7 +50,114 @@ namespace eComm_ms.Controllers
                 return NotFound(new { message = $"Order not found with ID: {id}" });
             }
 
-            return Ok(order);
+            var orderDetails = _orderDetailsService.BuildOrderDetails(order);
+
+            if (orderDetails == null)
+            {
+                return NotFound(new { message = "Order details could not be built due to missing related data" });
+            }
+
+            return Ok(orderDetails);
+        }
+
+        /// <summary>
+        /// Retrieves orders by a specific user ID with complete details and pagination.
+        /// </summary>
+        /// <param name="userId">The user ID to filter orders.</param>
+        /// <param name="pageNumber">The page number (1-based). Default is 1.</param>
+        /// <param name="pageSize">The number of orders per page. Default is 10, max 100.</param>
+        /// <returns>
+        /// 200 OK with paginated enriched orders list for the specified user.
+        /// 404 Not Found if user has no orders.
+        /// </returns>
+        [HttpGet("user/{userId:long}", Name = "getorderdetailsbyuserid")]
+        public ActionResult<object> GetOrderDetailsByUserId(long userId, int pageNumber = 1, int pageSize = 10)
+        {
+            if (userId <= 0)
+            {
+                return BadRequest(new { message = "User ID must be greater than 0" });
+            }
+
+            pageNumber = ValidatePageNumber(pageNumber);
+            pageSize = ValidatePageSize(pageSize);
+
+            var skipCount = (pageNumber - 1) * pageSize;
+
+            var totalCount = _context.Orders.Where(o => o.UserId == userId).Count();
+
+            if (totalCount == 0)
+            {
+                return NotFound(new { message = $"No orders found for user ID: {userId}" });
+            }
+
+            var orders = _context.Orders
+                .Where(o => o.UserId == userId)
+                .OrderByDescending(o => o.Id)
+                .Skip(skipCount)
+                .Take(pageSize)
+                .ToList();
+
+            var orderDetails = _orderDetailsService.BuildOrderDetailsList(orders);
+
+            return Ok(new
+            {
+                data = orderDetails,
+                userId = userId,
+                pageNumber = pageNumber,
+                pageSize = pageSize,
+                totalCount = totalCount,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
+        }
+
+        /// <summary>
+        /// Retrieves orders by a specific status ID with complete details and pagination.
+        /// </summary>
+        /// <param name="statusId">The status ID to filter orders.</param>
+        /// <param name="pageNumber">The page number (1-based). Default is 1.</param>
+        /// <param name="pageSize">The number of orders per page. Default is 10, max 100.</param>
+        /// <returns>
+        /// 200 OK with paginated enriched orders list for the specified status.
+        /// 404 Not Found if no orders exist for the status.
+        /// </returns>
+        [HttpGet("status/{statusId:long}", Name = "getorderdetailsbystatus")]
+        public ActionResult<object> GetOrderDetailsByStatusId(long statusId, int pageNumber = 1, int pageSize = 10)
+        {
+            if (statusId <= 0)
+            {
+                return BadRequest(new { message = "Status ID must be greater than 0" });
+            }
+
+            pageNumber = ValidatePageNumber(pageNumber);
+            pageSize = ValidatePageSize(pageSize);
+
+            var skipCount = (pageNumber - 1) * pageSize;
+
+            var totalCount = _context.Orders.Where(o => o.StatusId == statusId).Count();
+
+            if (totalCount == 0)
+            {
+                return NotFound(new { message = $"No orders found for status ID: {statusId}" });
+            }
+
+            var orders = _context.Orders
+                .Where(o => o.StatusId == statusId)
+                .OrderByDescending(o => o.Id)
+                .Skip(skipCount)
+                .Take(pageSize)
+                .ToList();
+
+            var orderDetails = _orderDetailsService.BuildOrderDetailsList(orders);
+
+            return Ok(new
+            {
+                data = orderDetails,
+                statusId = statusId,
+                pageNumber = pageNumber,
+                pageSize = pageSize,
+                totalCount = totalCount,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
         }
 
         /// <summary>

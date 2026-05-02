@@ -1,4 +1,5 @@
 using eComm_ms.DBA;
+using eComm_ms.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ECommDbContext>(options =>
     options.UseSqlite("Data Source=\"C:\\Users\\HP\\Documents\\eCommOrderProcessing\\src\\db\\eCommDB.db\""));
 builder.Services.AddControllers();
+builder.Services.AddScoped<OrderDetailsService>();
 
 var app = builder.Build();
 

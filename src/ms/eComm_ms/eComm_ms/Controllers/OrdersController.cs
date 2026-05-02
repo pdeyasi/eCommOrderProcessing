@@ -207,7 +207,7 @@ namespace eComm_ms.Controllers
                 _context.Orders.Add(order);
                 _context.SaveChanges();
 
-                return CreatedAtRoute("getorderbyid", new { id = order.Id }, new
+                return CreatedAtRoute("getorderdetailsbyid", new { id = order.Id }, new
                 {
                     message = "Order created successfully",
                     order = order

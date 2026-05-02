@@ -573,7 +573,7 @@ async function loadClientCart(userId) {
                     name: productInfo.name || `Product #${record.productId}`,
                     price: productInfo.price || 0,
                     icon: productInfo.icon || '📦',
-                    dbOrderId: record.id // Keep this so we can delete it from DB if removed
+                    dbOrderId: record.orderId // Keep this so we can delete it from DB if removed
                 };
             });
             

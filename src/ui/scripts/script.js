@@ -1,23 +1,57 @@
-const API_BASE_URL = "http://localhost:9000/api";
-let currentRole = 'client'; // Initial role
+const API_BASE_URL = "https://localhost:7019";
+const PRODUCTS_API_URL = `${API_BASE_URL}/products`;
 
-// --- Data State --- 
-const products = [
-    { id: 101, name: "Sony WH-1000XM5 Headphones", price: 348.00, icon: "🎧" },
-    { id: 102, name: "Apple Watch Ultra 2", price: 799.00, icon: "⌚" },
-    { id: 103, name: "JBL Flip 6 Portable Speaker", price: 99.95, icon: "🔊" },
-    { id: 104, name: "Logitech MX Master 3S Mouse", price: 99.99, icon: "🖱️" },
-    { id: 105, name: "Samsung 32\" 4K UHD Monitor", price: 349.00, icon: "🖥️" },
-    { id: 106, name: "Keychron K2 Mechanical Keyboard", price: 89.00, icon: "⌨️" },
-    { id: 107, name: "GoPro HERO12 Black", price: 399.00, icon: "📷" },
-    { id: 108, name: "Anker 737 Power Bank", price: 149.99, icon: "🔋" }
-];
+let currentRole = 'client'; 
+let products = [];
 let cart = [];
 let orders = [
     { id: "ORD-9821", date: "2023-10-25", total: 799.00, status: "shipped", items: ["Apple Watch Ultra 2"] }
 ];
 
-// --- Role Management Logic ---
+// Initialize
+initHome();
+fetchUserSession();
+
+async function initHome() {
+    const grid = document.getElementById('product-grid');
+    grid.innerHTML = "<p>Loading products...</p>";
+
+    try {
+        // Triggering the API call to get the JSON result[cite: 1]
+        const response = await fetch(PRODUCTS_API_URL);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        products = await response.json(); // Update the products variable with API data[cite: 1]
+        
+        if (products.length === 0) {
+            grid.innerHTML = "<p>No products available at the moment.</p>";
+            return;
+        }
+
+        renderProductGrid();
+    } catch (error) {
+        console.error("Failed to fetch products:", error);
+        grid.innerHTML = "<p style='color: var(--danger);'>Error loading products. Please ensure the API is running at https://localhost:7019</p>";
+    }
+}
+
+function renderProductGrid() {
+    const grid = document.getElementById('product-grid');
+    grid.innerHTML = products.map(p => `
+        <div class="product-card">
+            <div class="product-image" style="font-size: 40px; display:flex; justify-content:center; align-items:center;">
+                ${p.icon || '📦'} 
+            </div>
+            <div class="product-title">${p.name}</div>
+            <div class="product-price">$${p.price.toFixed(2)}</div>
+            <button class="btn-primary" onclick="addToCart(${p.id})">Add to Cart</button>
+        </div>
+    `).join('');
+}
+
 async function fetchUserSession() {
     // Fetches the role from your localhost API on load
     try {
@@ -58,7 +92,6 @@ function applyRoleUI() {
     }
 }
 
-// --- Navigation & UI Logic --- 
 function switchTab(tabId) {
     document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
     const activeTabButton = document.getElementById(`tab-${tabId}`);
@@ -80,22 +113,6 @@ function showToast(message) {
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
-// --- Home / Product Logic --- 
-function initHome() {
-    const grid = document.getElementById('product-grid');
-    grid.innerHTML = products.map(p => `
-        <div class="product-card">
-            <div class="product-image" style="font-size: 40px; display:flex; justify-content:center; align-items:center;">${p.icon}</div>
-            <div class="product-title">${p.name}</div>
-            <div class="product-price">$${p.price.toFixed(2)}</div>
-            <button class="btn-primary" onclick="addToCart(${p.id})">Add to Cart</button>
-        </div>
-    `).join('');
-}
-
-// [Keep your existing cart logic functions here: addToCart, renderCart, removeFromCart, placeOrder]
-
-// --- Order & API Logic --- 
 async function renderOrders() {
     const container = document.getElementById('orders-container');
     container.innerHTML = "<p>Fetching orders...</p>";
@@ -160,7 +177,6 @@ async function renderOrders() {
 
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        // Edited by localhost api
         const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -182,9 +198,3 @@ async function updateOrderStatus(orderId, newStatus) {
         statusBadge.innerText = newStatus.toUpperCase();
     }
 }
-
-// [Keep trackOrder and cancelOrder here unchanged]
-
-// Initialize
-initHome();
-fetchUserSession();

@@ -29,7 +29,7 @@ namespace eComm_ms.Controllers
                 return BadRequest("User already registered");
             }
 
-            var uId = 0l;
+            var uId = 0L;
             var maxId = _context.Users.Any() ? _context.Users.Max(u => u.Id) : 0;
             uId = maxId + 1;
 

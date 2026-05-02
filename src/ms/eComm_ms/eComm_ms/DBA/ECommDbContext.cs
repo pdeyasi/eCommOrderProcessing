@@ -13,11 +13,14 @@ namespace eComm_ms.DBA
 
         public DbSet<Users> Users { get; set; }
 
+        public DbSet<StatusStates> StatusStates { get; set; }
+
+        public DbSet<Orders> Orders { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure Products entity
             modelBuilder.Entity<Products>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -26,13 +29,28 @@ namespace eComm_ms.DBA
                 entity.Property(e => e.Icon).IsRequired();
             });
 
-            // Configure Users entity
             modelBuilder.Entity<Users>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.UserId).IsRequired();
                 entity.Property(e => e.RoleId).IsRequired();
                 entity.Property(e => e.Password).IsRequired();
+            });
+
+            modelBuilder.Entity<StatusStates>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired();
+                entity.Property(e => e.Description).IsRequired();
+                entity.Property(e => e.Icon).IsRequired();
+            });
+
+            modelBuilder.Entity<Orders>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.ProductId).IsRequired();
+                entity.Property(e => e.StatusId).IsRequired();
             });
         }
     }

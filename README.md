@@ -36,7 +36,11 @@ It provides end-to-end management of a user's shopping lifecycle, starting from 
   * Created product catalogs and shopping cart management workflows.
   * Designed a complete order state machine tracking 10 distinct statuses.
   * Added `OrderStatusUpdateService` background service for automated order processing (sweeping unapproved orders every 5 minutes).
-
+* **Merged Pull Requests:**
+  * [#1](https://github.com/pdeyasi/eCommOrderProcessing/pull/2) - Develop => Create first version of the application => main
+  * [#2](https://github.com/pdeyasi/eCommOrderProcessing/pull/3) - Develop => Manage Orders and minor bug fixes => main
+  * [#3](https://github.com/pdeyasi/eCommOrderProcessing/pull/4) - Develop => Order processing refinement => main
+  * [#4](https://github.com/pdeyasi/eCommOrderProcessing/pull/5) - Develop => Fix minor bugs in order processing status updates and conditions => main
 ---
 
 ## Architecture Diagram
@@ -69,6 +73,7 @@ The system operates on a standard client-server architecture utilizing a backgro
 |                 SQLite Database Layer                   |
 |                   (eCommDB.db)                          |
 +---------------------------------------------------------+
+```
 
 ## Order Processing Features
 The order processing pipeline enforces a strict state machine based on the user's role and selected payment method. 

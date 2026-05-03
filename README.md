@@ -4,6 +4,13 @@
 
 MiniShop Pro is a lightweight, responsive eCommerce web application paired with a robust .NET 10.0 microservice backend for comprehensive order management and fulfillment.
 
+## [Recordings Home Page](https://github.com/pdeyasi/eCommOrderProcessing/tree/main/recordings)
+* [Demo1 - Orders Filtered by User ID.mp4](https://github.com/pdeyasi/eCommOrderProcessing/blob/main/recordings/Demo1%20-%20Orders%20Filtered%20by%20User%20ID.mp4)
+* [Demo2 - Orders Filtered by Status.mp4](https://github.com/pdeyasi/eCommOrderProcessing/blob/main/recordings/Demo2%20-%20Orders%20Filtered%20by%20Status.mp4)
+* [Demo3 - Auto-Approval via Batch Processing Task.mp4](https://github.com/pdeyasi/eCommOrderProcessing/blob/main/recordings/Demo3%20-%20Auto-Approval%20via%20Batch%20Processing%20Task.mp4)
+* [Demo4 - Manual Order Status Change.mp4](https://github.com/pdeyasi/eCommOrderProcessing/blob/main/recordings/Demo4%20-%20Manual%20Order%20Status%20Change.mp4)
+* [Demo5 - Cancel Requests by User.mp4](https://github.com/pdeyasi/eCommOrderProcessing/blob/main/recordings/Demo5%20-%20Cancel%20Requests%20by%20User.mp4)
+
 ---
 
 ## Table of Contents

@@ -37,10 +37,10 @@ It provides end-to-end management of a user's shopping lifecycle, starting from 
   * Designed a complete order state machine tracking 10 distinct statuses.
   * Added `OrderStatusUpdateService` background service for automated order processing (sweeping unapproved orders every 5 minutes).
 * **Merged Pull Requests:**
-  * [#1](https://github.com/pdeyasi/eCommOrderProcessing/pull/2) - Develop => Create first version of the application => main
-  * [#2](https://github.com/pdeyasi/eCommOrderProcessing/pull/3) - Develop => Manage Orders and minor bug fixes => main
-  * [#3](https://github.com/pdeyasi/eCommOrderProcessing/pull/4) - Develop => Order processing refinement => main
-  * [#4](https://github.com/pdeyasi/eCommOrderProcessing/pull/5) - Develop => Fix minor bugs in order processing status updates and conditions => main
+  * [#1 - Develop => Create first version of the application => main](https://github.com/pdeyasi/eCommOrderProcessing/pull/2)
+  * [#2 - Develop => Manage Orders and minor bug fixes => main](https://github.com/pdeyasi/eCommOrderProcessing/pull/3)
+  * [#3 - Develop => Order processing refinement => main](https://github.com/pdeyasi/eCommOrderProcessing/pull/4)
+  * [#4 - Develop => Fix minor bugs in order processing status updates and conditions => main](https://github.com/pdeyasi/eCommOrderProcessing/pull/5)
 ---
 
 ## Architecture Diagram

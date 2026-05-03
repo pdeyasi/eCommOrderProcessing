@@ -10,6 +10,7 @@ const ROLE_MAP = {
 
 let currentRole = null;
 let currentUser = null;
+let currentUserId = null;
 let products = [];
 let cart = [];
 let orders = [];
@@ -59,18 +60,18 @@ async function handleAuth(event, action) {
                 showToast(data.message || "Authentication successful");
                 currentUser = data.username;
                 currentRole = ROLE_MAP[data.roleId];
-                const loggedInUserId = data.id || data.userId;
+                currentUserId = data.id || data.userId;
                 
                 document.getElementById('main-header').style.display = 'flex';
                 applyRoleUI();
                 
                 // ROUTING LOGIC
                 if (currentRole === 'client') {
-                    paginationFilters.userId = loggedInUserId;
+                    paginationFilters.userId = currentUserId;
                     paginationFilters.statusId = null;
                     
                     await initHome(); // Must load products first
-                    await loadClientCart(loggedInUserId); // Fills the cart with Status 1
+                    await loadClientCart(currentUserId); // Fills the cart with Status 1
                     
                     currentPage = 1;
                     await renderOrders(1);
@@ -258,22 +259,50 @@ async function renderOrders(pageNumber = 1) {
         if (currentRole === 'client') {
             actionControls = `
                 <button class="btn-info" onclick="trackOrder('${order.orderId}')">Track Order</button>
-                ${(order.statusId === 2 || order.statusId === 3 || order.statusId === 10) ? `<button class="btn-danger" onclick="cancelOrder('${order.id}')">Cancel Order</button>` : ''}
+                ${(order.statusId === 2 || order.statusId === 3 || order.statusId === 4 || order.statusId === 10) ? `<button class="btn-danger" onclick="cancelOrder('${order.orderId}')">Cancel Order</button>` : ''}
             `;
         } 
-        // Admin/Backend dropdowns
+        // Admin/Backend buttons
         else if (currentRole === 'admin' || currentRole === 'backend') {
-            actionControls = `
-                <select class="admin-status-select" onchange="updateOrderStatus('${order.id}', this.value)">
-                    <option value="2" ${order.statusId === 2 ? 'selected' : ''}>New - COD</option>
-                    <option value="3" ${order.statusId === 3 ? 'selected' : ''}>New - Paid</option>
-                    <option value="4" ${order.statusId === 4 ? 'selected' : ''}>Packaged</option>
-                    <option value="9" ${order.statusId === 9 ? 'selected' : ''}>In Transit</option>
-                    <option value="5" ${order.statusId === 5 ? 'selected' : ''}>Delivered</option>
-                    <option value="6" ${order.statusId === 6 ? 'selected' : ''}>Cancel Requested</option>
-                    <option value="8" ${order.statusId === 8 ? 'selected' : ''}>Cancelled</option>
-                </select>
-            `;
+            let nextStatusId = null;
+            let buttonText = "";
+
+            // Determine the next valid status based on current status and payment mode
+            if (order.statusId === 2 || order.statusId === 3) {
+                nextStatusId = 4;
+                buttonText = "Advance to Packaged";
+            } else if (order.statusId === 4) {
+                nextStatusId = 9;
+                buttonText = "Advance to In Transit";
+            } else if (order.statusId === 9) {
+                nextStatusId = 5;
+                buttonText = "Advance to Delivered";
+            } else if (order.statusId === 6) {
+                if (order.paymentMode === 1) {
+                    nextStatusId = 7;
+                    buttonText = "Advance to Cancelled (To be paid)";
+                } else {
+                    nextStatusId = 8;
+                    buttonText = "Advance to Cancelled";
+                }
+            } else if (order.statusId === 7) {
+                nextStatusId = 8;
+                buttonText = "Advance to Cancelled";
+            }
+
+            // Render the appropriate control
+            if (order.statusId === 5 || order.statusId === 8) {
+                actionControls = `<span style="font-weight: 600; color: var(--text-muted);">Final State Reached</span>`;
+            } else if (nextStatusId !== null) {
+                actionControls = `
+                    <button class="btn-primary" onclick="updateOrderStatus('${order.orderId}', ${nextStatusId})">
+                        ${buttonText}
+                    </button>
+                `;
+            } else {
+                // Fallback for states like 10 (System Approval) if visible to admins
+                actionControls = `<span style="font-weight: 600; color: var(--secondary);">Pending User Action</span>`;
+            }
         }
 
         // 1. Cross-reference the product details using the Product ID
@@ -607,7 +636,6 @@ function closeTrackModal() {
     document.getElementById('trackOrderModal').classList.remove('active');
 }
 
-// Main Track Order Function triggered by the button
 function trackOrder(orderId) {
     // 1. Find the specific order in your existing local array
     const order = displayOrders.find(o => o.orderId == orderId); 
@@ -658,7 +686,7 @@ function trackOrder(orderId) {
         if (order.statusId >= 6 && order.statusId <= 8) {
             
             // Cancellation branch
-            timelineHtml += buildTimelineStep('Cancellation Requested / Cancelled', order.cancelledOn, 'cancelled');
+            timelineHtml += buildTimelineStep('Cancellation Requested', order.cancelledOn, 'cancelled');
             
             // Only show CancellationPaidOn if it exists
             if (order.cancellationPaidOn) {
@@ -688,3 +716,98 @@ window.addEventListener('click', function(event) {
         closeTrackModal();
     }
 });
+
+async function updateOrderStatus(orderId, newStatusId) {
+    // Disable the button to prevent double-clicks during the API call
+    const buttonElement = event.target;
+    const originalText = buttonElement.innerText;
+    buttonElement.disabled = true;
+    buttonElement.innerText = "Updating...";
+
+    try {
+        // Construct the payload based on what your API expects for a status update.
+        // Adjust these fields if your C# backend requires more data in the DTO.
+        const updatePayload = {
+            statusId: parseInt(newStatusId),
+            lastUpdatedOn: new Date().toISOString(),
+			lastUpdatedByUserId: currentUserId,
+        };
+
+        const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ROLE_${currentRole}` 
+            },
+            body: JSON.stringify(updatePayload)
+        });
+
+        if (response.ok) {
+            showToast("Order status updated successfully.");
+            // Refresh the current page of orders to reflect the new state
+            renderOrders(currentPage); 
+        } else {
+            showToast("Failed to update order status. Please try again.");
+            buttonElement.disabled = false;
+            buttonElement.innerText = originalText;
+        }
+    } catch (error) {
+        console.error("Failed to update order status:", error);
+        showToast("Network error while updating status.");
+        buttonElement.disabled = false;
+        buttonElement.innerText = originalText;
+    }
+}
+
+async function cancelOrder(orderId) {
+    // 1. Find the specific order in the local array to check its payment mode
+    // We check both id and orderId just to be safe depending on your API structure
+    const order = displayOrders.find(o => o.orderId == orderId);
+    
+    if (!order) {
+        showToast("Order details not found.");
+        return;
+    }
+
+    // 2. Confirm the cancellation with the user
+    if (!confirm("Are you sure you want to cancel this order?")) {
+        return;
+    }
+
+    // 3. Determine new status based on payment mode
+    let newStatusId;
+    if (order.paymentMode == 1 || order.statusId == 4) {
+        newStatusId = 6;
+    } else {
+        newStatusId = 8; 
+    }
+
+    try {
+        const updatePayload = {
+            statusId: newStatusId,
+            lastUpdatedOn: new Date().toISOString(),
+			lastUpdatedByUserId: currentUserId,
+        };
+
+        // 4. Trigger the update API
+        const response = await fetch(`${API_BASE_URL}/orders/${order.id || order.orderId}/status`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ROLE_${currentRole}` 
+            },
+            body: JSON.stringify(updatePayload)
+        });
+
+        if (response.ok) {
+            showToast("Order cancelled successfully.");
+            // Refresh the order list to reflect the new state
+            renderOrders(currentPage); 
+        } else {
+            showToast("Failed to cancel the order. Please try again.");
+        }
+    } catch (error) {
+        console.error("Failed to cancel order:", error);
+        showToast("Network error while cancelling the order.");
+    }
+}

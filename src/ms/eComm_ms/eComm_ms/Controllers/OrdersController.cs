@@ -262,11 +262,13 @@ namespace eComm_ms.Controllers
                 return NotFound(new { message = $"Order not found with ID: {id}" });
             }
 
-            if ((order.StatusId == 6 || order.StatusId == 6)
-                && (orderDetails.StatusId != 10
-                || orderDetails.StatusId != 2
-                || orderDetails.StatusId != 3
-                || orderDetails.StatusId != 4))
+            if ((order.StatusId == 6 || order.StatusId == 8)
+                && !(orderDetails.StatusId == 10
+                || orderDetails.StatusId == 2
+                || orderDetails.StatusId == 3
+                || orderDetails.StatusId == 4
+                || orderDetails.StatusId == 6
+                || orderDetails.StatusId == 7))
             {
                 // Do not allow cancel for processed orders
                 return BadRequest(new { message = "Orders cannot be cancelled once in Transit or Delivered or Cancelled" });
@@ -276,31 +278,27 @@ namespace eComm_ms.Controllers
             orderDetails.StatusId = order.StatusId;
             orderDetails.LastUpdatedByUserId = order.LastUpdatedByUserId;
             orderDetails.LastUpdatedOn = DateTime.Now.ToString("O");
-            orderDetails.PaymentMode = order.PaymentMode;
-            orderDetails.OrderedFor = order.OrderedFor;
-            orderDetails.DeliveryAddress = order.DeliveryAddress;
 
             switch (order.StatusId)
             {
-                case 2:
-                case 3:
-                    order.OrderedOn = DateTime.Now.ToString("O");
+                case 10:
+                    orderDetails.PaymentMode = order.PaymentMode;
+                    orderDetails.OrderedFor = order.OrderedFor;
+                    orderDetails.DeliveryAddress = order.DeliveryAddress;
+                    orderDetails.OrderedOn = DateTime.Now.ToString("O");
                     break;
                 case 4:
-                    order.PackagedOn = DateTime.Now.ToString("O");
+                    orderDetails.PackagedOn = DateTime.Now.ToString("O");
                     break;
                 case 5:
-                    order.DeliveredOn = DateTime.Now.ToString("O");
+                    orderDetails.DeliveredOn = DateTime.Now.ToString("O");
                     break;
                 case 6:
-                case 7:
-                    order.CancelledOn = DateTime.Now.ToString("O");
+                    orderDetails.CancelledOn = DateTime.Now.ToString("O");
                     break;
                 case 8:
-                    order.CancellationPaidOn = DateTime.Now.ToString("O");
-                    break;
-                case 9:
-                    order.CancelledOn = DateTime.Now.ToString("O");
+                    orderDetails.CancellationPaidOn = DateTime.Now.ToString("O");
+                    orderDetails.CancelledOn = string.IsNullOrWhiteSpace(orderDetails.CancelledOn) ? DateTime.Now.ToString("O") : orderDetails.CancelledOn;
                     break;
             }
 
